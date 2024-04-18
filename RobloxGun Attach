@@ -1,0 +1,14 @@
+-- Server Script
+game.Players.PlayerAdded:Connect(function(plr)			
+	plr.CharacterAdded:Connect(function(char)		
+		local M6D = Instance.new("Motor6D", char.RightHand) -- or the part that you have decieded
+		M6D.Name = "ToolGrip"
+
+		char.ChildAdded:Connect(function(child)
+			if child:IsA("Tool") and child:FindFirstChild("BodyAttach") then
+				M6D.Part0 = char.RightHand
+				M6D.Part1 = child.BodyAttach
+			end
+		end)
+	end)
+end)

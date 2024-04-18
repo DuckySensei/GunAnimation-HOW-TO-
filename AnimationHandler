@@ -1,0 +1,115 @@
+local tool = script.Parent
+local UserInputService = game:GetService("UserInputService")
+local animations = script.Parent.Animations
+
+local idleAnimationId = animations.Idle.AnimationId -- you can also replace these lines with your animation id if you feel so inclined
+local adsAnimationId = animations.ads.AnimationId
+local runAnimationId = animations.run.AnimationId
+local reloadAnimationId = animations.reload.AnimationId
+
+local idleAnimation = Instance.new("Animation")
+idleAnimation.AnimationId = idleAnimationId
+
+local adsAnimation = Instance.new("Animation")
+adsAnimation.AnimationId = adsAnimationId
+
+local runAnimation = Instance.new("Animation")
+runAnimation.AnimationId = runAnimationId
+
+local reloadAnimation = Instance.new("Animation")
+reloadAnimation.AnimationId = reloadAnimationId
+
+local humanoid
+local idleAnimationTrack, adsAnimationTrack, runAnimationTrack, reloadAnimationTrack
+local equipped = false
+local running = false
+
+-- Function to play an animation
+local function playAnimation(animation, priority)
+	if humanoid and equipped then
+		local track = humanoid:LoadAnimation(animation)
+		track.Priority = priority
+		track:Play()
+		return track
+	end
+end
+
+-- Ensure idle animation is always playing in the background
+local function ensureIdleAnimation()
+	if not idleAnimationTrack or not idleAnimationTrack.IsPlaying then
+		idleAnimationTrack = playAnimation(idleAnimation, Enum.AnimationPriority.Idle)
+	end
+end
+
+-- Equip and unequip handlers
+local function onEquipped()
+	humanoid = tool.Parent:FindFirstChildWhichIsA("Humanoid")
+	equipped = true
+	ensureIdleAnimation()
+	humanoid.Running:Connect(function(speed)
+		if speed > 16 and not running then
+			if runAnimationTrack then
+				runAnimationTrack:Stop()
+			end
+			runAnimationTrack = playAnimation(runAnimation, Enum.AnimationPriority.Movement)
+			running = true
+		elseif speed <= 16 and running then
+			if runAnimationTrack then
+				runAnimationTrack:Stop()
+			end
+			ensureIdleAnimation()
+			running = false
+		end
+	end)
+end
+
+local function onUnequipped()
+	equipped = false
+	running = false
+	if idleAnimationTrack then
+		idleAnimationTrack:Stop()
+	end
+	if runAnimationTrack then
+		runAnimationTrack:Stop()
+	end
+	if adsAnimationTrack then
+		adsAnimationTrack:Stop()
+	end
+	if reloadAnimationTrack then
+		reloadAnimationTrack:Stop()
+	end
+end
+
+-- Input handlers
+local function onInputBegan(input, gameProcessed)
+	if equipped and not gameProcessed then
+		if input.UserInputType == Enum.UserInputType.MouseButton2 and not running then
+			if adsAnimationTrack then
+				adsAnimationTrack:Stop()
+			end
+			adsAnimationTrack = playAnimation(adsAnimation, Enum.AnimationPriority.Action)
+		elseif input.KeyCode == Enum.KeyCode.R then
+			if reloadAnimationTrack then
+				reloadAnimationTrack:Stop()
+			end
+			reloadAnimationTrack = playAnimation(reloadAnimation, Enum.AnimationPriority.Action)
+			reloadAnimationTrack.Stopped:Connect(ensureIdleAnimation)
+		end
+	end
+end
+
+local function onInputEnded(input, gameProcessed)
+	if equipped and not gameProcessed then
+		if input.UserInputType == Enum.UserInputType.MouseButton2 and not running then
+			if adsAnimationTrack then
+				adsAnimationTrack:Stop()
+			end
+			ensureIdleAnimation()
+		end
+	end
+end
+
+tool.Equipped:Connect(onEquipped)
+tool.Unequipped:Connect(onUnequipped)
+UserInputService.InputBegan:Connect(onInputBegan)
+UserInputService.InputEnded:Connect(onInputEnded)
